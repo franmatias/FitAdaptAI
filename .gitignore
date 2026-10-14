@@ -1,0 +1,39 @@
+node_modules
+.vercel
+.venv
+__pycache__
+*.pyc
+dist
+.env
+.DS_Store
+*.log
+.pytest_cache
+*.tsbuildinfo
+.env.*
+!.env.example
+
+# Diagramas, informes y capturas generados por Archify en la raíz
+/*-architecture.*
+/*.visual-check.*
+
+# Informes y artefactos de pruebas
+coverage/
+.coverage
+.coverage.*
+playwright-report/
+test-results/
+blob-report/
+
+# Credenciales y material de despliegue local
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.ssh/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+deployments.local/
+tools.local/

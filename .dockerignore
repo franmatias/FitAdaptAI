@@ -1,0 +1,35 @@
+# Solo entran al contexto los archivos necesarios para construir la aplicación.
+*
+!Dockerfile
+!.dockerignore
+!package.json
+!package-lock.json
+!index.html
+!vite.config.ts
+!tsconfig*.json
+!tailwind.config.js
+!postcss.config.js
+!requirements.txt
+!src/
+!src/**
+!api/
+!api/__init__.py
+!api/index.py
+!api/demo.py
+!deployment/
+!deployment/container_app.py
+node_modules/
+.venv/
+.pytest_cache/
+.vercel/
+coverage/
+playwright-report/
+test-results/
+**/__pycache__/
+# Defensa adicional incluso si se amplía la lista anterior.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/.aws/**
+**/.git/**

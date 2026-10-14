@@ -1,0 +1,56 @@
+"""Cada prueba empieza sin credenciales y tiene prohibida la salida a red."""
+import socket
+from unittest.mock import MagicMock
+from types import SimpleNamespace
+import json
+import pytest
+from fastapi.testclient import TestClient
+from api.index import app
+
+
+@pytest.fixture(autouse=True)
+def isolated_environment(monkeypatch):
+    for name in ('OPENAI_API_KEY', 'OPENAI_BASE_URL', 'AI_MODEL'):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv('FITADAPT_MODE', 'demo')
+    connect = socket.socket.connect
+    def guarded_connect(sock, address):
+        # asyncio usa un socketpair de loopback para comunicarse en Windows.
+        if isinstance(address, tuple) and address[0] in ('127.0.0.1', '::1'):
+            return connect(sock, address)
+        raise AssertionError('Las pruebas no pueden abrir conexiones externas')
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Las pruebas no pueden abrir conexiones de red')
+    monkeypatch.setattr(socket.socket, 'connect', guarded_connect)
+    monkeypatch.setattr(socket, 'create_connection', forbidden)
+    monkeypatch.setattr('api.index.OpenAI', forbidden)
+
+
+@pytest.fixture
+def client():
+    with TestClient(app) as instance:
+        yield instance
+
+
+@pytest.fixture
+def payload():
+    return dict(objetivo='fuerza', tiempo_minutos=35,
+                equipamiento=['peso_corporal'], nivel='principiante')
+
+
+@pytest.fixture
+def routine():
+    return dict(calentamiento='Movilidad suave', ejercicios=[dict(
+        nombre='Sentadilla al aire', series=3, repeticiones='8-10',
+        descanso_segundos=60, rpe_sugerido='RPE 6', consejo_tecnico='Mantén los talones apoyados.')],
+        alternativa_rapida='Puente de glúteos', tiempo_total_estimado=25)
+
+
+@pytest.fixture
+def provider(monkeypatch, routine):
+    monkeypatch.setenv('FITADAPT_MODE', 'ia')
+    fake = MagicMock()
+    fake.chat.completions.create.return_value = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(routine)))])
+    monkeypatch.setattr('api.index.get_openai_client', lambda: fake)
+    return fake

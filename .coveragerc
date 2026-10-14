@@ -1,0 +1,4 @@
+[run]
+omit =
+    api/test_*.py
+    api/conftest.py
