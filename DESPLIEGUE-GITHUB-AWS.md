@@ -450,14 +450,15 @@ Los fallos de descarga suelen relacionarse con permisos de ejecución, etiqueta/
 
 ### 7.7. Secretos y modo IA en la cuenta de pago
 
-1. Mantener demo hasta tener control de acceso y límites de consumo adecuados para los usuarios previstos. La aplicación actual no incluye autenticación; resolverlo antes de ofrecer una API de IA pública. Para una prueba cerrada, restringir el ALB a las IP autorizadas.
+1. La aplicación valida con Clerk las sesiones de las peticiones de generación. Configurar `VITE_CLERK_PUBLISHABLE_KEY` al compilar la imagen, `CLERK_AUTHORIZED_PARTIES` con el origen público exacto y `CLERK_SECRET_KEY` como secreto runtime. La autenticación no limita por sí sola la creación de cuentas ni el consumo por usuarios autenticados; mantener límites de gasto y valorar rate limiting en el ALB/WAF.
 2. En Secrets Manager, crear un secreto de tipo Other con un valor JSON que tenga la propiedad `OPENAI_API_KEY`; introducir el valor solo en la consola. Elegir el cifrado y política de acceso apropiados.
-3. Dar al **rol de ejecución** `secretsmanager:GetSecretValue` sobre el ARN exacto de ese secreto. Si se utiliza una clave KMS propia, añadir los permisos mínimos de descifrado correspondientes. No conceder acceso a todos los secretos de la cuenta.
-4. Crear nueva revisión de la tarea. En Secrets/valueFrom, mapear `OPENAI_API_KEY` a la propiedad JSON del secreto. Con ARN de secreto `ARN_DEL_SECRETO`, la referencia de esa propiedad tiene la forma `ARN_DEL_SECRETO:OPENAI_API_KEY::`. Usar plataforma Fargate Linux 1.4.0 o posterior para seleccionar propiedades JSON.
-5. Añadir `FITADAPT_MODE=ia` y las variables no secretas `AI_MODEL` y, si corresponde, `OPENAI_BASE_URL`.
-6. Actualizar el servicio a la nueva revisión y esperar salud correcta.
-7. Probar una llamada autorizada y revisar consumo del proveedor. El health check solo verifica el proceso/modo: no valida que la clave de IA funcione.
-8. Rotar el secreto cuando proceda y forzar un nuevo despliegue: las tareas ya arrancadas no reciben automáticamente el valor actualizado.
+3. Guardar también `CLERK_SECRET_KEY` en Secrets Manager, sin incluirla en la imagen Docker ni en variables `VITE_*`.
+4. Dar al **rol de ejecución** `secretsmanager:GetSecretValue` sobre los ARN exactos de ambos secretos. Si se utiliza una clave KMS propia, añadir los permisos mínimos de descifrado correspondientes. No conceder acceso a todos los secretos de la cuenta.
+5. Crear nueva revisión de la tarea. En Secrets/valueFrom, mapear `OPENAI_API_KEY` y `CLERK_SECRET_KEY` a las propiedades JSON de sus secretos. Usar plataforma Fargate Linux 1.4.0 o posterior para seleccionar propiedades JSON.
+6. Añadir `FITADAPT_MODE=ia`, `CLERK_AUTHORIZED_PARTIES` con el origen público exacto y las variables no secretas `AI_MODEL` y, si corresponde, `OPENAI_BASE_URL`.
+7. Actualizar el servicio a la nueva revisión y esperar salud correcta.
+8. Probar una llamada con sesión Clerk válida y revisar consumo del proveedor. El health check solo verifica el proceso/modo: no valida la configuración de Clerk ni la clave de IA.
+9. Rotar los secretos cuando proceda y forzar un nuevo despliegue: las tareas ya arrancadas no reciben automáticamente los valores actualizados.
 
 No habilitar logs de cuerpos de petición, claves ni respuestas privadas del proveedor. No colocar secretos en las variables públicas del cliente ni en User Data de EC2.
 

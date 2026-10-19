@@ -5,11 +5,13 @@ from types import SimpleNamespace
 import json
 import pytest
 from fastapi.testclient import TestClient
-from api.index import app
+from api.index import app, require_authenticated_user
 
 
 @pytest.fixture(autouse=True)
 def isolated_environment(monkeypatch):
+    previous_overrides = app.dependency_overrides.copy()
+    app.dependency_overrides[require_authenticated_user] = lambda: 'test-user'
     for name in ('OPENAI_API_KEY', 'OPENAI_BASE_URL', 'AI_MODEL'):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv('FITADAPT_MODE', 'demo')
@@ -24,12 +26,26 @@ def isolated_environment(monkeypatch):
     monkeypatch.setattr(socket.socket, 'connect', guarded_connect)
     monkeypatch.setattr(socket, 'create_connection', forbidden)
     monkeypatch.setattr('api.index.OpenAI', forbidden)
+    yield
+    app.dependency_overrides.clear()
+    app.dependency_overrides.update(previous_overrides)
 
 
 @pytest.fixture
 def client():
     with TestClient(app) as instance:
         yield instance
+
+
+@pytest.fixture
+def unauthenticated_client():
+    previous_override = app.dependency_overrides.pop(require_authenticated_user, None)
+    try:
+        with TestClient(app) as instance:
+            yield instance
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[require_authenticated_user] = previous_override
 
 
 @pytest.fixture

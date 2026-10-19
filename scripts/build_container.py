@@ -1,11 +1,18 @@
 """Construye sin recorrer cachés locales ni enviar secretos al motor Docker."""
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tarfile
 import tempfile
 
+from dotenv import dotenv_values
+
 root = Path(__file__).resolve().parents[1]
+publishable_key = os.environ.get("VITE_CLERK_PUBLISHABLE_KEY")
+if not publishable_key:
+    publishable_key = dotenv_values(root / ".env").get("VITE_CLERK_PUBLISHABLE_KEY", "")
+
 files = [
     "Dockerfile", ".dockerignore", "package.json", "package-lock.json",
     "index.html", "vite.config.ts", "tailwind.config.js", "postcss.config.js",
@@ -26,7 +33,11 @@ with tempfile.TemporaryFile() as context:
             archive.add(path, arcname=name, recursive=False)
     context.seek(0)
     result = subprocess.run(
-        ["docker", "build", "--platform", "linux/amd64", "-t", "fitadaptai:local", "-"],
+        [
+            "docker", "build", "--platform", "linux/amd64",
+            "--build-arg", f"VITE_CLERK_PUBLISHABLE_KEY={publishable_key}",
+            "-t", "fitadaptai:local", "-",
+        ],
         stdin=context, cwd=root,
     )
     sys.exit(result.returncode)

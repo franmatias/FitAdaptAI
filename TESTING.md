@@ -47,7 +47,7 @@ El lanzador de Python usa `.venv` si existe; en caso contrario usa `python` del 
 ## Aislamiento y resultados
 
 - Playwright crea sus servidores en `127.0.0.1:4179` y `127.0.0.1:8019` y los detiene al terminar. Si están ocupados, falla en vez de reutilizar un servidor de trabajo con IA real.
-- El servidor E2E fuerza modo demo, deshabilita la lectura de `.env`, vacía la clave y dirige cualquier proveedor accidental a un puerto local cerrado. No se requieren secretos ni se llama a producción.
+- El servidor E2E fuerza modo demo, deshabilita la lectura de `.env`, vacía la clave y dirige cualquier proveedor accidental a un puerto local cerrado. Usa `e2e.api_test_app` para sustituir la dependencia de autenticación solo en ese proceso y una sesión ficticia en el frontend; el override no forma parte del backend desplegado. No se requieren secretos ni se llama a producción.
 - Pytest elimina las credenciales de cada prueba, bloquea el constructor real de OpenAI y las conexiones externas. Solo permite el loopback que necesita asyncio en Windows.
 - Vitest desmonta componentes y restaura simulaciones y temporizadores entre pruebas. Los fixtures representan respuestas controladas y no rutinas médicas validadas.
 - Informes: `coverage/vue/index.html`, `coverage/python/index.html` y `playwright-report/index.html`. Las trazas, capturas y vídeos de fallos se conservan en `test-results/`.

@@ -3,7 +3,10 @@ import json
 from pathlib import Path
 from enum import Enum
 from typing import List
-from fastapi import FastAPI, HTTPException, status
+import httpx
+from clerk_backend_api import Clerk
+from clerk_backend_api.security.types import AuthenticateRequestOptions, TokenVerificationErrorReason
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator
 from openai import OpenAI, APIError, APITimeoutError
 from dotenv import load_dotenv
@@ -86,12 +89,82 @@ def get_openai_client() -> OpenAI:
     base_url = os.getenv("OPENAI_BASE_URL", None)
     return OpenAI(api_key=api_key, base_url=base_url, timeout=40.0, max_retries=0)
 
+def require_authenticated_user(request: Request) -> str:
+    authorization = request.headers.get('authorization', '')
+    if not authorization.lower().startswith('bearer '):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Inicia sesión para utilizar este servicio.',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+
+    secret_key = os.getenv('CLERK_SECRET_KEY')
+    if not secret_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='La autenticación no está configurada en el servidor.',
+        )
+
+    allowed_parties = [
+        origin.strip()
+        for origin in os.getenv(
+            'CLERK_AUTHORIZED_PARTIES',
+            'http://127.0.0.1:5173,http://localhost:5173',
+        ).split(',')
+        if origin.strip()
+    ]
+    clerk = Clerk(bearer_auth=secret_key)
+    clerk_request = httpx.Request(
+        request.method,
+        str(request.url),
+        headers=request.headers,
+    )
+    try:
+        request_state = clerk.authenticate_request(
+            clerk_request,
+            AuthenticateRequestOptions(
+                authorized_parties=allowed_parties,
+                accepts_token=['session_token'],
+            ),
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='No se pudo verificar la sesión con Clerk.',
+        ) from exc
+
+    if request_state.reason in {
+        TokenVerificationErrorReason.SERVER_ERROR,
+        TokenVerificationErrorReason.JWK_FAILED_TO_LOAD,
+        TokenVerificationErrorReason.JWK_REMOTE_INVALID,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='No se pudo verificar la sesión con Clerk.',
+        )
+
+    if not request_state.is_signed_in:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='La sesión no es válida o ha caducado.',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+
+    user_id = (request_state.payload or {}).get('sub')
+    if not isinstance(user_id, str) or not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='La sesión no contiene una identidad válida.',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+    return user_id
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "FitAdaptAI", "modo": generation_mode()}
 
 @app.post("/api/generate-routine", response_model=RutinaResponse)
-def generate_routine(payload: WorkoutRequest):
+def generate_routine(payload: WorkoutRequest, user_id: str = Depends(require_authenticated_user)):
     if generation_mode() == 'demo':
         from api.demo import generate_demo
         return RutinaResponse(**generate_demo(payload))

@@ -35,12 +35,14 @@ describe('FitAdapt Vue 3 Frontend Component Tests', () => {
       tiempo_total_estimado: 45,
     };
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockRutina,
-    }));
+    });
+    vi.stubGlobal('fetch', mockFetch);
 
-    const wrapper = mount(App);
+    const getToken = vi.fn().mockResolvedValue('session-token');
+    const wrapper = mount(App, { props: { getToken } });
 
     // Disparar el evento de submit del formulario
     await wrapper.find('form').trigger('submit.prevent');
@@ -51,5 +53,13 @@ describe('FitAdapt Vue 3 Frontend Component Tests', () => {
     expect(wrapper.text()).toContain('Sentadilla Goblet con Mancuerna');
     expect(wrapper.text()).toContain('Rotaciones de tobillo y 5 minutos de trote suave.');
     expect(wrapper.text()).toContain('Zancadas estáticas si la mancuerna pesada está en uso.');
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/generate-routine',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer session-token',
+        }),
+      }),
+    );
   });
 });

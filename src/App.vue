@@ -18,6 +18,10 @@ import type {
   RutinaResponse,
 } from './types/workout';
 
+const props = defineProps<{
+  getToken?: () => Promise<string | null>;
+}>();
+
 interface EquipamientoOpcion {
   id: Equipamiento;
   label: string;
@@ -73,11 +77,16 @@ const handleSubmit = async (): Promise<void> => {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 55000);
   try {
+    const token = await props.getToken?.();
+    if (props.getToken && !token) {
+      throw new Error('Tu sesión ha caducado. Inicia sesión de nuevo para continuar.');
+    }
     const response = await fetch('/api/generate-routine', {
       method: 'POST',
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(payload),
     });

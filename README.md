@@ -4,7 +4,7 @@
 
 FitAdaptAI es un ejercicio didáctico para comprender el proceso completo de desarrollo y despliegue de una aplicación web. Consiste en una app sencilla, con frontend y backend, que utiliza una API de inteligencia artificial para resolver un problema concreto: proponer rutinas de entrenamiento adaptadas a las preferencias y restricciones de cada usuario.
 
-El ejercicio pone especial énfasis en redactar una buena especificación y recorrer el ciclo de vida del proyecto: mantener un histórico de cambios con Git y GitHub, desplegar la aplicación en Vercel y AWS, y preparar su ejecución con Docker. También sirve para practicar la incorporación progresiva de servicios externos, como Clerk para la autenticación, y la protección de sus credenciales y demás variables de entorno. Clerk se plantea como parte de ese aprendizaje y no está integrado actualmente en la aplicación.
+El ejercicio pone especial énfasis en redactar una buena especificación y recorrer el ciclo de vida del proyecto: mantener un histórico de cambios con Git y GitHub, desplegar la aplicación en Vercel y AWS, y preparar su ejecución con Docker. También sirve para practicar la incorporación progresiva de servicios externos, como Clerk para la autenticación, y la protección de sus credenciales y demás variables de entorno. Clerk protege tanto la interfaz como el endpoint de generación de rutinas.
 
 La aplicación está construida con Vue 3, TypeScript y Tailwind en el frontend, y FastAPI en el backend. El documento original de referencia se conserva fuera del proyecto.
 
@@ -19,9 +19,22 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
 
+### Configurar Clerk
+
+La aplicación necesita una instancia de Clerk antes de iniciar. Crea una en el [Dashboard de Clerk](https://dashboard.clerk.com/) o selecciona una a la que tengas acceso, y vincúlala desde una terminal:
+
+```powershell
+npx -y clerk@latest auth login
+npx -y clerk@latest apps list --json
+npx -y clerk@latest link --app <APP_ID>
+npx -y clerk@latest env pull
+```
+
+Si aún no tienes un `.env`, copia `.env.example` a `.env` antes de completar las variables. Conserva en `.env` las claves de proveedores que ya tengas: no lo sobrescribas. El frontend usa `VITE_CLERK_PUBLISHABLE_KEY` (clave pública); FastAPI verifica las sesiones con `CLERK_SECRET_KEY` (secreto, solo servidor). Configura `CLERK_AUTHORIZED_PARTIES` con el origen exacto del frontend. Nunca uses el prefijo `VITE_` en claves secretas. `.env` está excluido de Git; publica solo la plantilla vacía `.env.example`.
+
 ## Modos de generación
 
-El modo **demo** funciona sin cuenta, sin clave y sin llamadas externas. Usa un catálogo de ejercicios y reglas según objetivo, nivel, equipamiento y tiempo. La duración es una estimación calculada con calentamiento, series, descansos y transiciones; puede ser inferior al tiempo disponible. La pantalla identifica cada resultado demo.
+El modo **demo** no necesita una clave de OpenAI ni realiza llamadas a esa API, pero sí requiere iniciar sesión con Clerk. Usa un catálogo de ejercicios y reglas según objetivo, nivel, equipamiento y tiempo. La duración es una estimación calculada con calentamiento, series, descansos y transiciones; puede ser inferior al tiempo disponible. La pantalla identifica cada resultado demo.
 
 Para usar un proveedor de IA, copia `.env.example` a `.env`, cambia `FITADAPT_MODE=ia` e introduce tu clave en `OPENAI_API_KEY`. Reinicia el servidor. `.env` está excluido de Git; solo se debe compartir `.env.example`, sin claves ni valores secretos. Si una clave se publica por error, revócala y genera otra. La clave permanece en Python y nunca se incluye en el cliente. El uso del proveedor puede tener coste. `OPENAI_BASE_URL` permite configurar un endpoint compatible y `AI_MODEL` su modelo.
 
@@ -70,7 +83,7 @@ Según la confirmación del responsable del proyecto, la aplicación ya está de
 
 Consulta [DESPLIEGUE-GITHUB-AWS.md](DESPLIEGUE-GITHUB-AWS.md) para publicar el código sin secretos, construir Docker y desplegar en AWS Academy y en una cuenta de pago. Los resultados verificados y los pasos pendientes están en [ESTADO-DESPLIEGUE.md](ESTADO-DESPLIEGUE.md).
 
-Arranque Docker en modo demo, usando la construcción con selección explícita de archivos:
+Arranque Docker en modo demo, usando la construcción con selección explícita de archivos. El script toma la clave **pública** de Clerk de `.env` para compilar el frontend; `CLERK_SECRET_KEY` y `CLERK_AUTHORIZED_PARTIES` deben estar en `.env.docker`, que solo se inyecta en el contenedor al arrancar:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/build_container.py

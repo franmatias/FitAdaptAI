@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'node scripts/python.mjs -m uvicorn api.index:app --host 127.0.0.1 --port 8019',
+      command: 'node scripts/python.mjs -m uvicorn e2e.api_test_app:app --host 127.0.0.1 --port 8019',
       url: 'http://127.0.0.1:8019/api/health',
       reuseExistingServer: false,
       env: { FITADAPT_MODE: 'demo', OPENAI_API_KEY: '', OPENAI_BASE_URL: 'http://127.0.0.1:9', PYTHON_DOTENV_DISABLED: '1' },
@@ -31,7 +31,11 @@ export default defineConfig({
       command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4179 --strictPort',
       url: 'http://127.0.0.1:4179',
       reuseExistingServer: false,
-      env: { FITADAPT_API_TARGET: 'http://127.0.0.1:8019' },
+      env: {
+        FITADAPT_API_TARGET: 'http://127.0.0.1:8019',
+        VITE_CLERK_PUBLISHABLE_KEY: '',
+        VITE_E2E_AUTH: 'true',
+      },
       timeout: 90_000,
     },
   ],

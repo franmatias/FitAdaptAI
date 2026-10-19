@@ -37,7 +37,7 @@ flowchart LR
       ]
         estaticos["«artifact» Frontend compilado<br/>Vite → dist/"]
         funcion["«executionEnvironment» Función Python<br/>api/index.py · FastAPI"]
-        variables["«artifact» Variables de entorno<br/>FITADAPT_MODE · OPENAI_API_KEY · AI_MODEL"]
+        variables["«artifact» Variables de entorno<br/>FITADAPT_MODE · Clerk · OpenAI"]
     **Qué hace:** Vercel construirá la interfaz como Vite y reconocerá `api/index.py` como la función Python. La aplicación FastAPI ya define `/api/health` y `/api/generate-routine`; Vercel puede entregar esas rutas a `api/index.py` sin la regla `rewrites` del ejemplo inicial. Los 60 segundos dan margen a una respuesta lenta del proveedor de IA. La aplicación tiene un tiempo de espera propio más corto; este valor no obliga a esperar siempre 60 segundos. Las cabeceras aplican HSTS, evitan MIME sniffing e iframes, limitan permisos del navegador y restringen recursos con CSP. Si en el futuro integras scripts, fuentes o servicios externos, actualiza la CSP solo para los orígenes concretos que necesites. Consulta [el ejemplo de rutas de Vercel](https://vercel.com/academy/python-on-vercel/explore-fastapi-starter) y [la configuración de duración de funciones](https://vercel.com/docs/functions/configuring-functions/duration).
 
     subgraph proveedor["«node» Proveedor de IA"]
@@ -128,7 +128,7 @@ git status --short
 
 Si tienes un `.env`, el segundo comando debe mostrar `.env`. Si **no** lo muestra, comprueba que estás en `FitAdaptAI`, que `.gitignore` contiene una línea `.env` y detente antes de `git add`. En `git status --short` no debe figurar `.env` ni una clave. Si ya habías subido una clave a cualquier repositorio, quitar el archivo en un commit nuevo no borra el historial: revoca esa clave y crea otra.
 
-**Nunca** escribas la clave en `src/`, `public/`, `vite.config.ts`, `vercel.json`, una captura de pantalla, un commit, un issue o el tutorial. Las variables con prefijo `VITE_` quedan disponibles para el código del navegador: no utilices ese prefijo para `OPENAI_API_KEY`. La clave se usa exclusivamente en FastAPI.
+**Nunca** escribas una clave secreta en `src/`, `public/`, `vite.config.ts`, `vercel.json`, una captura de pantalla, un commit, un issue o el tutorial. Las variables con prefijo `VITE_` quedan disponibles para el código del navegador: usa ese prefijo únicamente para la clave publicable de Clerk, nunca para `OPENAI_API_KEY` ni `CLERK_SECRET_KEY`. Los secretos se usan exclusivamente en FastAPI.
 
 ## 4. Crea un repositorio en GitHub y sube el proyecto
 
@@ -179,17 +179,20 @@ Sustituye `TU_USUARIO` y el nombre del repositorio por los tuyos. Si Git pide no
 
 ### Ruta recomendada para empezar: demo
 
-En **Environment Variables**, añade:
+En **Environment Variables**, añade estas variables para que el frontend pueda iniciar sesión y el backend pueda validar cada petición:
 
 | Nombre | Valor | Entorno |
 | --- | --- | --- |
 | `FITADAPT_MODE` | `demo` | Production |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clave pública de la instancia Clerk | Production |
+| `CLERK_SECRET_KEY` | Clave secreta de la instancia Clerk | Production |
+| `CLERK_AUTHORIZED_PARTIES` | Orígenes permitidos separados por comas, por ejemplo `https://fitadaptai.vercel.app` | Production |
 
-No añadas `OPENAI_API_KEY`. El modo demo genera rutinas con reglas locales y permite comprobar todo el recorrido sin consumir una API externa. Si quieres probar una rama de GitHub en una URL de prueba, añade también `FITADAPT_MODE=demo` al entorno **Preview**.
+Marca `CLERK_SECRET_KEY` como **Sensitive** si Vercel ofrece esa opción. No marques la clave publicable como secreta: se compila en el frontend por diseño. No añadas `OPENAI_API_KEY`. El modo demo genera rutinas con reglas locales y permite comprobar todo el recorrido sin consumir una API externa. Añade los orígenes de Preview por separado a `CLERK_AUTHORIZED_PARTIES` si quieres probar ramas en URLs de prueba.
 
 ### Ruta opcional: IA real
 
-**Límite de seguridad:** el endpoint de generación no tiene autenticación ni limitación de solicitudes persistente; cualquier visitante puede llamarlo y generar consumo de la clave. No publiques el modo IA en un dominio público hasta configurar reglas de rate limiting para `/api/generate-routine` en Vercel Firewall/WAF (si están incluidas en tu plan) o poner autenticación y un límite equivalente delante de la API. Configura además alertas y límites de gasto en el proveedor de IA. Si no puedes aplicar esos controles, mantén `FITADAPT_MODE=demo`.
+Clerk autentica las peticiones al endpoint de generación. Esto no limita por sí solo la creación de cuentas ni el consumo por usuarios autenticados: configura reglas de rate limiting para `/api/generate-routine` en Vercel Firewall/WAF si están incluidas en tu plan y añade alertas y límites de gasto en el proveedor de IA.
 
 Usa **una clave propia** de un proyecto de OpenAI al que tengas acceso y revisa sus límites de uso antes de publicar. En Vercel, añade estas variables al entorno **Production**:
 
@@ -198,8 +201,11 @@ Usa **una clave propia** de un proyecto de OpenAI al que tengas acceso y revisa 
 | `FITADAPT_MODE` | `ia` |
 | `OPENAI_API_KEY` | tu clave privada, introducida en el formulario de Vercel |
 | `AI_MODEL` | `gpt-4o-mini` o un modelo disponible en tu proyecto |
+| `VITE_CLERK_PUBLISHABLE_KEY` | clave publicable de Clerk |
+| `CLERK_SECRET_KEY` | clave secreta de Clerk, marcada como Sensitive |
+| `CLERK_AUTHORIZED_PARTIES` | origen Production exacto permitido |
 
-No copies la clave a este fichero ni a GitHub. Si Vercel ofrece marcar la variable como **Sensitive**, úsalo para `OPENAI_API_KEY`. Si también quieres probar IA en **Preview**, configura allí variables separadas; una rama de prueba no recibe automáticamente las variables de Production. El valor `AI_MODEL` del ejemplo debe corresponder a un modelo al que tu proyecto tenga acceso. OpenAI puede cobrar por las llamadas, independientemente del plan de Vercel.
+No copies claves secretas a este fichero ni a GitHub. Si Vercel ofrece marcar las variables como **Sensitive**, úsalo para `OPENAI_API_KEY` y `CLERK_SECRET_KEY`. Si también quieres probar IA en **Preview**, configura allí variables separadas; una rama de prueba no recibe automáticamente las variables de Production. El valor `AI_MODEL` del ejemplo debe corresponder a un modelo al que tu proyecto tenga acceso. OpenAI puede cobrar por las llamadas, independientemente del plan de Vercel.
 
 **Consejo docente:** para una práctica en clase, empieza con `demo`. Una web pública en modo `ia` expone el botón de generación a cualquier visitante y puede generar consumo de la cuenta. Usa una clave de proyecto específica para esta práctica, controla el uso y desactiva `ia` al terminar si ya no lo necesitas.
 
