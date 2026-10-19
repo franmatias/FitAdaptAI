@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import AppRoot from '../src/AppRoot.vue';
 import { router } from '../src/router';
 import HomeView from '../src/views/home.vue';
 import SignInView from '../src/views/sign-in.vue';
@@ -99,5 +100,16 @@ describe('Clerk authentication views', () => {
   it('renders Clerk sign-in and sign-up components on their routes', () => {
     expect(mount(SignInView).find('[data-testid="clerk-sign-in"]').exists()).toBe(true);
     expect(mount(SignUpView).find('[data-testid="clerk-sign-up"]').exists()).toBe(true);
+  });
+
+  it('renders the route selected by Vue Router in the app root', async () => {
+    await router.push('/sign-in');
+    await router.isReady();
+    const wrapper = mount(AppRoot, { global: { plugins: [router] } });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="clerk-sign-in"]').exists()).toBe(true);
+    wrapper.unmount();
+    await router.push('/');
   });
 });
