@@ -4,7 +4,7 @@
 
 FitAdaptAI es un ejercicio didáctico para comprender el proceso completo de desarrollo y despliegue de una aplicación web. Consiste en una app sencilla, con frontend y backend, que utiliza una API de inteligencia artificial para resolver un problema concreto: proponer rutinas de entrenamiento adaptadas a las preferencias y restricciones de cada usuario.
 
-El ejercicio pone especial énfasis en redactar una buena especificación y recorrer el ciclo de vida del proyecto: mantener un histórico de cambios con Git y GitHub, desplegar la aplicación en Vercel y AWS, y preparar su ejecución con Docker. También sirve para practicar la incorporación progresiva de servicios externos, como Clerk para la autenticación, y la protección de sus credenciales y demás variables de entorno. Clerk protege tanto la interfaz como el endpoint de generación de rutinas.
+El ejercicio pone especial énfasis en redactar una buena especificación y recorrer el ciclo de vida del proyecto: mantener un histórico de cambios con Git y GitHub, desplegar la aplicación en Vercel y AWS, y preparar su ejecución con Docker. Clerk ya está integrado para autenticar a los usuarios: la aplicación ofrece inicio de sesión y registro, y el backend verifica el token de sesión antes de generar una rutina. El proyecto también enseña a proteger las credenciales y demás variables de entorno.
 
 La aplicación está construida con Vue 3, TypeScript y Tailwind en el frontend, y FastAPI en el backend. El documento original de referencia se conserva fuera del proyecto.
 
@@ -21,7 +21,7 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 
 ### Configurar Clerk
 
-La aplicación necesita una instancia de Clerk antes de iniciar. Crea una en el [Dashboard de Clerk](https://dashboard.clerk.com/) o selecciona una a la que tengas acceso, y vincúlala desde una terminal:
+La autenticación de Clerk ya está integrada. La aplicación ofrece las rutas `/sign-in` y `/sign-up`; el endpoint de generación requiere una sesión válida. Para ejecutarla localmente, crea o selecciona una instancia en el [Dashboard de Clerk](https://dashboard.clerk.com/) y vincúlala desde una terminal:
 
 ```powershell
 npx -y clerk@latest auth login
@@ -30,7 +30,9 @@ npx -y clerk@latest link --app <APP_ID>
 npx -y clerk@latest env pull
 ```
 
-Si aún no tienes un `.env`, copia `.env.example` a `.env` antes de completar las variables. Conserva en `.env` las claves de proveedores que ya tengas: no lo sobrescribas. El frontend usa `VITE_CLERK_PUBLISHABLE_KEY` (clave pública); FastAPI verifica las sesiones con `CLERK_SECRET_KEY` (secreto, solo servidor). Configura `CLERK_AUTHORIZED_PARTIES` con el origen exacto del frontend. Nunca uses el prefijo `VITE_` en claves secretas. `.env` está excluido de Git; publica solo la plantilla vacía `.env.example`.
+Si aún no tienes un `.env`, copia `.env.example` a `.env` antes de completar las variables. Conserva en `.env` las claves de proveedores que ya tengas: no lo sobrescribas. El frontend usa `VITE_CLERK_PUBLISHABLE_KEY` (clave pública); FastAPI verifica las sesiones con `CLERK_SECRET_KEY` (secreto, solo servidor). Configura `CLERK_AUTHORIZED_PARTIES` con los orígenes exactos del frontend. Nunca uses el prefijo `VITE_` en claves secretas. `.env` está excluido de Git; publica solo la plantilla vacía `.env.example`.
+
+Las claves de desarrollo de Clerk sirven para este ejercicio y sus pruebas, pero tienen límites y no deben usarse en un servicio de producción real. Para un despliegue de uso real, crea una instancia Production en Clerk y configura las claves `pk_live_...` y `sk_live_...` en las variables seguras del proveedor de despliegue.
 
 ## Modos de generación
 
@@ -74,10 +76,11 @@ La documentación interactiva de la API está en http://127.0.0.1:8000/docs. Vit
 - Duración entera de 20 a 75 minutos en pasos de 5, equipamiento no vacío, sin duplicados, y rechazo de campos desconocidos.
 - Respuestas del proveedor validadas; errores sin revelar datos internos y tiempos de espera acotados.
 - Carga de `.env`, sin CORS abierto: el navegador utiliza el proxy del mismo origen.
+- Autenticación con Clerk: vistas de acceso y registro, y verificación de sesiones en la API.
 - Formulario bloqueado durante la petición; mensajes accesibles y parámetros del resultado conservados aunque se cambien los controles.
 - Modo demo explícito, arranque Windows y pruebas sin consumo de API.
 
-Según la confirmación del responsable del proyecto, la aplicación ya está desplegada en Vercel. `vercel.json` utiliza el preset Vite y la función Python; la guía de ese entorno está en `despliegue-vercel.md`. En local, los puertos solo escuchan en la propia máquina.
+La aplicación está desplegada en [Vercel](https://fitadaptai.vercel.app/), con Clerk integrado. El despliegue actual usa claves Development de Clerk para este ejercicio educativo; tienen límites estrictos y no son adecuadas para un servicio de uso real. `vercel.json` utiliza el preset Vite y la función Python; la guía de ese entorno está en `despliegue-vercel.md`. Para un despliegue de uso real, configura claves live de Clerk y los orígenes autorizados de cada entorno. En local, los puertos solo escuchan en la propia máquina.
 
 ## GitHub, Docker y AWS
 
