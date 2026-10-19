@@ -11,6 +11,9 @@ dist
 *.tsbuildinfo
 .env.*
 !.env.example
+.vscode/
+.idea/
+Thumbs.db
 
 # Diagramas, informes y capturas generados por Archify en la raíz
 /*-architecture.*

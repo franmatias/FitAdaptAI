@@ -17,7 +17,7 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 
 El modo **demo** funciona sin cuenta, sin clave y sin llamadas externas. Usa un catálogo de ejercicios y reglas según objetivo, nivel, equipamiento y tiempo. La duración es una estimación calculada con calentamiento, series, descansos y transiciones; puede ser inferior al tiempo disponible. La pantalla identifica cada resultado demo.
 
-Para usar un proveedor de IA, copia `.env.example` a `.env`, cambia `FITADAPT_MODE=ia` e introduce tu clave en `OPENAI_API_KEY`. Reinicia el servidor. La clave permanece en Python y nunca se incluye en el cliente. El uso del proveedor puede tener coste. `OPENAI_BASE_URL` permite configurar un endpoint compatible y `AI_MODEL` su modelo.
+Para usar un proveedor de IA, copia `.env.example` a `.env`, cambia `FITADAPT_MODE=ia` e introduce tu clave en `OPENAI_API_KEY`. Reinicia el servidor. `.env` está excluido de Git; solo se debe compartir `.env.example`, sin claves ni valores secretos. Si una clave se publica por error, revócala y genera otra. La clave permanece en Python y nunca se incluye en el cliente. El uso del proveedor puede tener coste. `OPENAI_BASE_URL` permite configurar un endpoint compatible y `AI_MODEL` su modelo.
 
 Si el proveedor falla se muestra un error; no se sustituye silenciosamente la respuesta por una demo. La integración real necesita una clave válida y no se comprueba mediante llamadas de pago durante las pruebas.
 
