@@ -1,6 +1,12 @@
 # FitAdaptAI
 
-Aplicación local de rutinas de entrenamiento basada en `pract01-vercel.md`: Vue 3, TypeScript, Tailwind y FastAPI. El documento original se conserva fuera del proyecto.
+## Proyecto educativo
+
+FitAdaptAI es un ejercicio didáctico para comprender el proceso completo de desarrollo y despliegue de una aplicación web. Consiste en una app sencilla, con frontend y backend, que utiliza una API de inteligencia artificial para resolver un problema concreto: proponer rutinas de entrenamiento adaptadas a las preferencias y restricciones de cada usuario.
+
+El ejercicio pone especial énfasis en redactar una buena especificación y recorrer el ciclo de vida del proyecto: mantener un histórico de cambios con Git y GitHub, desplegar la aplicación en Vercel y AWS, y preparar su ejecución con Docker. También sirve para practicar la incorporación progresiva de servicios externos, como Clerk para la autenticación, y la protección de sus credenciales y demás variables de entorno. Clerk se plantea como parte de ese aprendizaje y no está integrado actualmente en la aplicación.
+
+La aplicación está construida con Vue 3, TypeScript y Tailwind en el frontend, y FastAPI en el backend. El documento original de referencia se conserva fuera del proyecto.
 
 ## Abrir en Windows
 
